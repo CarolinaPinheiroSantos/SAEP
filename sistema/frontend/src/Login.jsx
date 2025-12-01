@@ -37,7 +37,7 @@ export default function Login({ onLogin }){
 
   return (
     <div className="login-container">
-      <h2>Entrar</h2>
+      <h2>Login</h2>
       <form onSubmit={submit} className="form">
         <input placeholder="Usuário" value={username} onChange={e=>setUsername(e.target.value)} />
         <input type="password" placeholder="Senha" value={password} onChange={e=>setPassword(e.target.value)} />

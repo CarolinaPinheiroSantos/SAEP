@@ -21,6 +21,14 @@ function App({ currentUser, onLogout }) {
         </div>
       </header>
 
+      <div style={{ 
+        marginTop: 10,
+        fontSize: 30,
+        color: "#16a085"
+      }}>
+        Bem-vindo, {currentUser?.nome || currentUser?.username || "Usuário"}!
+      </div>
+
       <main>
         {view === 'produtos' && <Produtos api={API_BASE} />}
         {view === 'estoque' && <Estoque api={API_BASE} />}
@@ -29,10 +37,9 @@ function App({ currentUser, onLogout }) {
   )
 }
 
-//
-// ------------------------------------------
-// POPUP COMPONENTE GENÉRICO
-// ------------------------------------------
+// ----------------------------------------------------
+// POPUP GENÉRICO
+// ----------------------------------------------------
 function Popup({ open, onClose, children }) {
   if (!open) return null
 
@@ -62,10 +69,9 @@ function Popup({ open, onClose, children }) {
   )
 }
 
-//
-// ------------------------------------------
-// CADASTRO DE PRODUTOS
-// ------------------------------------------
+// ----------------------------------------------------
+// CADASTRO PRODUTOS
+// ----------------------------------------------------
 function Produtos({ api }) {
   const [produtos, setProdutos] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -108,16 +114,15 @@ function Produtos({ api }) {
     }
 
     axios.post(`${api}/products/`, payload)
-      .then(() => {
+      .then((res) => {
+        // ALERTA SE JÁ CADASTRA BAIXO DO MÍNIMO
+        if (payload.quantity < payload.min_quantity) {
+          alert(`Atenção!\nO produto "${payload.name}" foi cadastrado com estoque abaixo do mínimo.`)
+        }
+
         fetchAll(searchTerm)
         setOpenPopup(false)
-        setForm({
-          name: '',
-          sku: '',
-          description: '',
-          quantity: 0,
-          min_quantity: 0
-        })
+        setForm({ name: '', sku: '', description: '', quantity: 0, min_quantity: 0 })
       })
       .catch(e => {
         if (e.response && e.response.data)
@@ -193,13 +198,20 @@ function Produtos({ api }) {
       </button>
 
       <div className="form">
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: 8, display: 'flex', gap: 4, alignItems: 'center' }}>
           <input
             placeholder="Buscar"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
+            style={{ flex: 1 }}
           />
-          <button onClick={doSearch}>Buscar</button>
+
+          <button
+            onClick={doSearch}
+            style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <i className="bi bi-search"></i>
+          </button>
         </div>
       </div>
 
@@ -226,27 +238,36 @@ function Produtos({ api }) {
       <Popup open={openPopup} onClose={() => setOpenPopup(false)}>
         <h3>{form.id ? "Editar Produto" : "Novo Produto"}</h3>
 
+        <label>Nome</label>
         <input
           placeholder="Nome"
           value={form.name}
           onChange={e => setForm({ ...form, name: e.target.value })}
         />
+
+        <label>SKU</label>
         <input
           placeholder="SKU"
           value={form.sku}
           onChange={e => setForm({ ...form, sku: e.target.value })}
         />
+
+        <label>Descrição</label>
         <input
           placeholder="Descrição"
           value={form.description}
           onChange={e => setForm({ ...form, description: e.target.value })}
         />
+
+        <label>Quantidade</label>
         <input
           type="number"
           placeholder="Quantidade"
           value={form.quantity}
           onChange={e => setForm({ ...form, quantity: parseInt(e.target.value) })}
         />
+
+        <label>Estoque mínimo</label>
         <input
           type="number"
           placeholder="Estoque mínimo"
@@ -262,10 +283,9 @@ function Produtos({ api }) {
   )
 }
 
-//
-// ------------------------------------------
-// ESTOQUE COM ALERTA FIXO NA TELA
-// ------------------------------------------
+// ----------------------------------------------------
+// ESTOQUE
+// ----------------------------------------------------
 function Estoque({ api }) {
   const [produtos, setProdutos] = useState([]);
   const [selecionado, setSelecionado] = useState(null);
@@ -281,7 +301,7 @@ function Estoque({ api }) {
 
         const abaixo = r.data
           .filter(p => p.quantity < p.min_quantity)
-          .map(p => `⚠️ Estoque do produto "${p.name}" está abaixo do mínimo!`);
+          .map(p => `Estoque do produto "${p.name}" está abaixo do mínimo!`);
 
         setAlertasFixos(abaixo);
       })
@@ -311,6 +331,16 @@ function Estoque({ api }) {
     axios.post(`${api}/movements/`, payload)
       .then(() => {
         carregarProdutos();
+
+        // ALERTA DE BAIXA
+        if (tipo === "saida") {
+          alert(`Baixa realizada:\n${quantidade} unidades removidas do produto "${selecionado.name}".`);
+        }
+
+        // ALERTA ABAIXO DO MÍNIMO
+        if (tipo === "saida" && selecionado.quantity - quantidade < selecionado.min_quantity) {
+          alert(`Atenção!\nO estoque do produto "${selecionado.name}" ficou abaixo do mínimo.`);
+        }
       })
       .catch(e => {
         setAlertasFixos(prev => [...prev,
